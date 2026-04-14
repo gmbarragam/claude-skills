@@ -69,11 +69,11 @@ Read the project before generating anything. Follow this priority order:
 
 ## Output Structure
 
-Create a `docs/` folder at the project root:
+Place `README.md` at the **project root**. All other docs go inside a `docs/` folder:
 
 ```
+README.md                      # Index linking to all docs (project root)
 docs/
-├── README.md                  # Index linking to all docs
 ├── c4/
 │   ├── c4-level-1.md          # System Context
 │   ├── c4-level-2.md          # Container Diagram
@@ -98,7 +98,7 @@ Always generate in this order to satisfy cross-document dependencies:
 4. **`environment-variables.md`** — references `security-issues.md` and `dead-code.md`
 5. **`request-map.md`** — references `dead-code.md` for dead requests
 6. **`c4-level-1.md`** → **`c4-level-4.md`** — references `dead-code.md` for status markers
-7. **`README.md`** — index, generated last
+7. **`README.md`** — index at project root, generated last
 
 ---
 
