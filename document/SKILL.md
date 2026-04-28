@@ -17,6 +17,8 @@ Generate structured, evidence-based technical documentation for any software pro
 `/document bugs` — bugs and code quality issues only
 `/document requests` — HTTP request map only
 `/document update` — update existing docs to reflect recent code changes (diff existing docs against current code, update what changed)
+`/document lang:pt` — force Portuguese output language
+`/document lang:en` — force English output language
 
 When `$ARGUMENTS` contains a specific file path or component name, scope the documentation to that component rather than the whole project.
 
@@ -27,12 +29,34 @@ If no argument is given, generate the full suite.
 ## Language
 
 Detect the output language from context in this priority order:
-1. Explicit argument: `/document lang:pt`, `/document lang:es`, etc.
-2. Language of existing documentation in the project (`README.md`, `docs/`, comments)
+1. Explicit argument: `/document lang:pt`, `/document lang:en`, etc.
+2. Language of existing documentation in the project (`docs/`, `README.md`, code comments)
 3. Language used by the user in this conversation
 4. Default: **English**
 
 All documentation output — diagram labels, section titles, descriptions, impact analysis, fix suggestions, everything — must be in the detected language. Be consistent throughout.
+
+When **Portuguese** is selected, use Portuguese markers: `PERIGOSO`, `NAO_UTILIZADO`, `[DESCONTINUADO]`, `[NÃO UTILIZADO]`.
+When **English** is selected, use English markers: `DANGEROUS`, `UNUSED`, `[DISCONTINUED]`, `[UNUSED]`.
+
+---
+
+## Section Titles
+
+Use consistent titles across all files. Adapt to output language:
+
+| File | English | Portuguese |
+|------|---------|------------|
+| `README.md` | `# <repo-name> — Documentation` | `# <repo-name> — Documentação` |
+| `c4-level-1.md` | `# C4 Level 1 — System Context` | `# C4 Nível 1 — Contexto do Sistema` |
+| `c4-level-2.md` | `# C4 Level 2 — Container Diagram` | `# C4 Nível 2 — Diagrama de Contêineres` |
+| `c4-level-3.md` | `# C4 Level 3 — Component Diagram` | `# C4 Nível 3 — Diagrama de Componentes` |
+| `c4-level-4.md` | `# C4 Level 4 — Code Diagrams` | `# C4 Nível 4 — Diagramas de Código` |
+| `request-map.md` | `# HTTP Request Map` | `# Mapa de Requisições` |
+| `security-issues.md` | `# Security Issues` | `# Problemas de Segurança` |
+| `bugs.md` | `# Bugs and Code Quality` | `# Bugs e Problemas de Qualidade` |
+| `dead-code.md` | `# Dead Code` | `# Código Morto` |
+| `environment-variables.md` | `# Environment Variables` | `# Variáveis de Ambiente` |
 
 ---
 
@@ -121,22 +145,23 @@ Always generate in this order to satisfy cross-document dependencies:
 
 **Diagram:** Mermaid `graph TD` with:
 - **Actors** (👤) — who uses the system
-- **Entry point** — if the system sits behind an API gateway, load balancer, or another system that authenticates and redirects, show it as a separate `subgraph` labeled "Entry Point" (it is not an actor, it is a system). If users access the system directly, omit this.
+- **Entry point** — if the system sits behind an API gateway, load balancer, or another system that authenticates and redirects, show it as a separate `subgraph` labeled "Entry Point" (or "Ponto de Entrada" in Portuguese). It is not an actor — it is a system. If users access the system directly, omit this.
 - **The system itself** (⚙️) — one box
 - **External systems** — third-party APIs, cloud services, data stores, auth providers
 - **Arrows** labeled with interaction type
 
-**Actors table:** Columns: `Actor`, `Type`, `Description`
+**Actors table:** Columns: `Actor` | `Type` | `Description`
 - Description must be **evidence-based** — derived from what the auth code actually validates, not assumed
 - Do NOT assign specific roles unless the code explicitly differentiates them
 - Examples:
   - ❌ `"Administrator / Editor authenticated via OAuth"` — assigns roles not validated by code
+  - ❌ `"Company employee"` — assumes organizational role not checked in code
   - ✅ `"Authenticated via Google OAuth (email domain whitelist)"` — describes what code validates
-  - ✅ `"User with valid JWT signed by auth service"` — evidence-based
+  - ✅ `"User with valid JWT signed by the auth service"` — evidence-based
 
-**Entry Point table** (if applicable): `System`, `Type`, `Description`
+**Entry Point table** (if applicable): `System` | `Type` | `Description`
 
-**External Systems table:** `System`, `Description`
+**External Systems table:** `System` | `Description`
 
 **Main Flow:** Numbered list (5–10 steps) describing the main happy path end-to-end. High-level — no file names or implementation details. Must be consistent with the diagram.
 
@@ -155,7 +180,7 @@ Always generate in this order to satisfy cross-document dependencies:
 
 Arrows show protocols (REST, gRPC, WebSocket, Pub/Sub, AMQP, etc.)
 
-**Important:** If a container is marked `[DISCONTINUED]`, ALL arrows to/from it must use `-.->` (dashed). Apply at generation time.
+**⚠️ Discontinued arrow rule — apply at generation time, not as a post-check:** If a container is marked `[DISCONTINUED]`, ALL arrows to/from it must use `-.->` (dashed). Never use `-->` (solid) for a discontinued container. Check dead-code.md before drawing arrows.
 
 **Container table:** Name | Technology | Deployment target | Description
 
@@ -188,8 +213,8 @@ Arrows show protocols (REST, gRPC, WebSocket, Pub/Sub, AMQP, etc.)
 
 **Content:**
 1. **`classDiagram`** — main classes/modules with methods and properties
-   - Mark dangerous methods with `DANGEROUS` (⚠️ text equivalent for classDiagram)
-   - Mark unused methods with `UNUSED` (❌ text equivalent for classDiagram)
+   - Mark dangerous methods with `DANGEROUS` (⚠️ text equivalent for classDiagram — emoji not supported)
+   - Mark unused methods with `UNUSED` (❌ text equivalent for classDiagram — emoji not supported)
    - Show relationships: `-->` (uses), `--|>` (inherits), `*--` (composition)
    - Add a legend: `**Legend:** \`DANGEROUS\` = ⚠️ · \`UNUSED\` = ❌`
    - ⚠️ classDiagram does NOT support emoji in method/class names — use plain text markers only
@@ -218,6 +243,8 @@ Arrows show protocols (REST, gRPC, WebSocket, Pub/Sub, AMQP, etc.)
 8. Embedded content — iframes, external scripts loaded (if applicable)
 
 **Columns:** `#` | `Method` | `URL` | `Source file` | `Purpose` | `Auth`
+
+The `#` column is sequential across all sections.
 
 **Summary:** Status summary table at the end counting active, dead, placeholder, and vestigial requests.
 
@@ -252,7 +279,8 @@ Arrows show protocols (REST, gRPC, WebSocket, Pub/Sub, AMQP, etc.)
 **Rules:**
 - Issues are numbered **globally** (1, 2, 3... across all severity tiers — not reset per tier)
 - **Every issue must have a code snippet — no exceptions**
-- When the problem is the ABSENCE of something (no auth, no rate limiting), show the code where the mitigation SHOULD exist but doesn't
+- When the problem is the ABSENCE of something (no auth, no rate limiting, no validation): show the code where the mitigation SHOULD exist but doesn't — e.g., the middleware setup that lacks the auth check, the route handler with no guard, the config file missing the protection
+- When the problem is absence of an entire file/mechanism: show the closest entry point (route registration, server setup) to illustrate where the gap is
 - End with a summary table: severity | count | main problems
 
 ---
@@ -261,7 +289,7 @@ Arrows show protocols (REST, gRPC, WebSocket, Pub/Sub, AMQP, etc.)
 
 **Categories:**
 - 🔴 **Bugs** — Incorrect behavior, broken features, misleading logic, race conditions, wrong error handling
-- 🟠 **Bugs in vestigial code** (optional) — Bugs in dead/unused code that don't affect users today but would if reactivated
+- 🟠 **Bugs in vestigial code** (optional) — Bugs in dead/unused code that don't affect users today but would if reactivated. Apply this tier when the project has significant dead/unused code that contains its own bugs.
 - 🟡 **Code Quality Issues** — Works but problematic: duplicate logic, inconsistencies, API convention violations, misleading names
 
 **Each issue format:**
@@ -304,6 +332,8 @@ Arrows show protocols (REST, gRPC, WebSocket, Pub/Sub, AMQP, etc.)
 
 **Part 1 — Environment variables (by type):**
 
+Sections are numbered sequentially: `## 1.`, `## 2.`, etc.
+
 Classify each variable by asking in this order:
 1. **Used per container** — variable is read by code AND configured somewhere (`.env`, CI/CD, Dockerfile)
 2. **Read in code but not configured** — read by code but not found in any config source
@@ -311,9 +341,13 @@ Classify each variable by asking in this order:
 4. **Build-time variables** — CI/CD substitutions per container
 5. **Dockerfile variables** — `ENV`/`ARG` set during Docker build
 
-A variable may appear in multiple sections (e.g., a build substitution that maps to a runtime variable). Omit any type with zero variables.
+A variable may appear in multiple sections (e.g., a build substitution that maps to a runtime variable). Omit any type with zero variables. Do not misclassify a variable into the wrong type — match the definition exactly.
 
 **Part 2 — Hardcoded values (by category):**
+
+Sections **continue the numbering from Part 1** (e.g., if Part 1 ends at `## 5.`, Part 2 starts at `## 6.`).
+
+Within Part 2 tables, the `#` column uses a **single sequential counter across ALL categories** (1, 2, 3... through the entire Part 2).
 
 Only include categories that apply to the project. Common categories:
 1. 🔴 API keys and secrets (always first if present)
@@ -330,8 +364,8 @@ Only include categories that apply to the project. Common categories:
 **For each hardcoded value:** Current value | File:line | Suggested env var name
 
 **Exposure distinction:** For each hardcoded value, distinguish:
-- **Values that would stop being exposed if moved to env var** — server-side values (API keys, passwords, credentials) that are currently in source but would stop being visible once moved to CI/CD secrets or a secrets manager
-- **Values that remain exposed even as env vars** — client-side values rendered in the frontend (API keys for browser SDKs, public config). Mark with 🌐 and explain why they remain public
+- **Values that stop being exposed when moved to env var** — server-side values (API keys, passwords, credentials). Currently visible to anyone with git repo access; once moved to CI/CD secrets or a secrets manager, they disappear from source. Note: server-side code is not accessible in the browser, but IS exposed to anyone with repo access — moving to env vars is still important.
+- **Values that remain exposed even as env vars** (mark with 🌐) — client-side values that must be rendered in the frontend (browser SDK API keys, `VITE_*` vars, OAuth client IDs used client-side). Moving them to env vars improves configurability but they will **always be visible in the browser**. Add a note explaining why they remain public.
 
 ---
 
@@ -343,6 +377,7 @@ Only include categories that apply to the project. Common categories:
 - Private keys: `MIIEvg...END PRIVATE KEY`
 - Passwords: `RCZ%...])2`
 - Service account emails: `name@...iam.gserviceaccount.com`
+- Client IDs: `start...end.apps.googleusercontent.com`
 
 Infrastructure identifiers (project IDs, resource IDs, service URLs) are not secrets — they can be kept as-is.
 
@@ -350,14 +385,33 @@ Infrastructure identifiers (project IDs, resource IDs, service URLs) are not sec
 
 ## Diagram Style Guide
 
-All diagrams use **Mermaid** syntax.
+All diagrams use **Mermaid** syntax. Follow these rules precisely to avoid syntax errors.
+
+---
+
+### Global Rules (all diagram types)
+
+- **Never use single quotes** — always double quotes
+- **IDs** (node IDs, participant IDs, entity names): alphanumeric + underscore only (`MY_NODE`, `myNode`, `USER_SESSION`). No spaces, hyphens, dots, slashes, or special characters.
+- **Reserved words must NOT be used as IDs**: `end`, `start`, `graph`, `subgraph`, `classDef`, `class`, `note`, `loop`, `alt`, `else`, `par`, `opt`, `rect`, `direction`. Rename them (e.g., `END_STATE`, `START_NODE`).
+- **String values with special characters** (parentheses, colons, pipes, brackets, slashes, hyphens) MUST be wrapped in double quotes.
+- **No backticks** anywhere in diagram code — they cause parse errors in most Mermaid renderers.
+
+---
 
 ### `graph TD` — Context, Container, Component diagrams
 
-**Node format:** Always `NODE_ID["emoji text"]` (square brackets with quotes)
-- Never use `classDef` + `class` for colors — use emojis instead
-- Never use round brackets `("text")` — always square `["text"]`
-- Never use bare text without emoji
+**Node format:** Always `NODE_ID["emoji text"]` — square brackets with double-quoted content.
+- ✅ `USER["👤 User<br/>Authenticated via OAuth"]`
+- ❌ `USER("👤 User")` — round brackets not allowed
+- ❌ `USER[👤 User]` — unquoted content causes errors if it contains spaces or special chars
+- ❌ `USER['👤 User']` — single quotes not supported
+
+**Node IDs:**
+- Alphanumeric + underscore: `MY_BACKEND`, `authService`, `CLOUD_STORAGE`
+- No hyphens: use `MY_SERVICE` not `my-service`
+- No spaces: `MY_SERVICE` not `my service`
+- Each ID must be unique within the diagram — reusing an ID creates an implicit merge
 
 **Node labels:**
 ```mermaid
@@ -365,6 +419,28 @@ graph TD
     ACTOR["👤 Actor Name<br/>Short description"]
     SYSTEM["⚙️ System Name<br/>Technology / Deploy target"]
 ```
+- Use `<br/>` for line breaks inside labels — never `\n` or bare newlines
+- Avoid `()` inside quoted labels — parentheses can confuse some renderers
+
+**Arrow labels:** ALWAYS double-quoted — no exceptions:
+- ✅ `A -->|"REST + Bearer token"| B`
+- ❌ `A -->|REST| B` — bare text breaks on special characters
+
+**Subgraphs:** Quote the name, use a safe ID:
+```mermaid
+subgraph SG_BACKEND["Backend Services"]
+    ...
+end
+```
+- Never use a reserved word as the subgraph ID
+- The quoted label after the ID is optional but recommended for readability
+
+**Dead/unused nodes:**
+- Add `[UNUSED]` or `[DISCONTINUED]` in the node label text
+- Leave disconnected (no arrows) if completely unused
+- Use dashed arrows (`-.->`) if the code path exists but is unreachable
+
+**Never use `classDef`** — use emojis for visual differentiation instead.
 
 **Emoji mapping (consistent across all diagrams):**
 - 👤 Person / Actor / User
@@ -381,83 +457,146 @@ graph TD
 - 📡 Route / API endpoint
 - 🔀 Gateway / Load balancer / Proxy
 
-**Grouping:**
-```mermaid
-graph TD
-    subgraph "Group Name"
-        A["⚙️ Service A"]
-        B["⚙️ Service B"]
-    end
-```
-
 **Arrows:**
 - `-->` solid: active connection → `A -->|"REST + Bearer token"| B`
 - `-.->` dashed: dead/discontinued connection → `A -.->|"[DISCONTINUED]"| B`
 - Always label arrows with interaction type (protocol, data, purpose)
 
-**Dead/unused nodes:**
-- Add `[UNUSED]` or `[DISCONTINUED]` in the node label
-- Leave disconnected (no arrows) if completely unused
-- Use dashed arrows (`-.->`) if the code path exists but is unreachable
+---
 
 ### `classDiagram` (C4 Level 4)
 
-⚠️ **Mermaid limitation:** `classDiagram` does NOT support emoji — they cause parse errors. Use plain-text markers instead. This does NOT apply to `graph TD`, `sequenceDiagram`, or `erDiagram`.
+⚠️ **Mermaid limitation:** `classDiagram` does NOT support emoji — in class names, method names, property names, or relationship labels. They cause parse errors. This does NOT apply to `graph TD`, `sequenceDiagram`, or `erDiagram`.
 
+**Use plain-text markers only:**
+- `DANGEROUS` instead of ⚠️
+- `UNUSED` instead of ❌
+- Add a legend below every classDiagram: `**Legend:** \`DANGEROUS\` = ⚠️ · \`UNUSED\` = ❌`
+
+**Class names:** PascalCase, no spaces, no special chars, no reserved words (`end`, `class`, etc.)
+
+**Method format:**
 ```mermaid
 classDiagram
-    class ClassName {
-        +publicMethod(param) ReturnType
-        -privateMethod() DANGEROUS
-        +unusedMethod() UNUSED
-        +property: Type
+    class AuthService {
+        +login(credentials: Credentials): Token
+        -validateToken(token: string): boolean DANGEROUS
+        +logout(): void
+        +refreshToken(): Token UNUSED
+        +userId: string
     }
-    ClassA --> ClassB : uses
 ```
+- Visibility: `+` public, `-` private, `#` protected, `~` package
+- Return type goes after `)`: `+method(param: Type): ReturnType`
+- Markers go after return type: `+method(): Type DANGEROUS`
 
-Always define dependency classes as proper `class` blocks — do NOT use quoted strings as targets (`ClassA --> "someUtil"` causes parse errors).
+**Relationship targets MUST be defined class names — never quoted strings:**
+- ✅ `class SomeUtil { }` then `ClassA --> SomeUtil : uses`
+- ❌ `ClassA --> "SomeUtil" : uses` — quoted strings as targets cause parse errors
+
+**Stereotypes:** `<<interface>>`, `<<abstract>>`, `<<service>>`, `<<enum>>` — double angle brackets are supported.
+
+**Avoid very long class blocks** — Mermaid has rendering limits. Split large classes across multiple diagrams if needed.
+
+**Relationships:**
+- `-->` uses / depends on
+- `--|>` inherits / extends
+- `*--` composition
+- `o--` aggregation
+- `..>` realizes / implements (interface)
+
+---
 
 ### `sequenceDiagram` (C4 Level 4)
 
+**Participant IDs:** Short alphanumeric aliases only. Put the full display name in the `as` clause:
 ```mermaid
 sequenceDiagram
     participant U as 👤 User
     participant FE as 🌐 Frontend
     participant BE as ⚙️ Backend
     participant DB as 📊 Database
+```
+- Emoji are safe in `sequenceDiagram` participant `as` labels
+- IDs must be short: `U`, `FE`, `BE`, `DB` — not `Frontend_Service` or `Auth Backend`
 
-    U->>FE: User action
-    FE->>BE: POST /endpoint (payload)
-    BE->>DB: Query
-    DB-->>BE: Result
-    BE-->>FE: 200 OK + data
+**Message text:** After `:`, plain text is safe. Avoid backticks and nested double quotes.
+
+**`Note over`:** Use participant aliases (short IDs), comma-separated:
+- ✅ `Note over FE,BE: Important note`
+- ❌ `Note over 🌐 Frontend, ⚙️ Backend: note` — use aliases, not display names
+
+**`alt`/`else`/`end`:** Condition text after `alt` is plain text — no quotes, no backticks:
+```mermaid
+alt Token valid
+    BE-->>FE: 200 OK
+else Token expired
+    BE-->>FE: 401 Unauthorized
+end
 ```
 
-- Use `->>` for requests, `-->>` for responses
-- Use `alt`/`else` for conditional flows
-- Use `loop` for iterations
-- Use `Note over A,B:` for important annotations
+**Arrows:**
+- `->>` for requests/calls
+- `-->>` for responses
+- `->` for calls without arrowhead (rare)
+
+**Loops:** `loop Description` then steps then `end`
+
+**Activation:** Use `+`/`-` prefix or explicit `activate`/`deactivate` — both work:
+```mermaid
+U->>+FE: Click submit
+FE->>+BE: POST /api/data
+BE-->>-FE: 200 OK
+FE-->>-U: Show result
+```
+
+---
 
 ### `erDiagram` (C4 Level 4)
 
+**Entity names:** UPPER_CASE, no spaces, underscores OK:
+- ✅ `USER_SESSION`, `PRODUCT`, `ORDER_ITEM`
+- ❌ `User Session`, `user-session`
+
+**Attribute format:**
 ```mermaid
 erDiagram
-    TABLE_NAME {
-        TYPE column_name PK "description"
-        TYPE column_name FK "description"
-        TYPE column_name "description"
+    USER {
+        uuid id PK "primary key"
+        string email "unique"
+        string password_hash
+        datetime created_at
+        boolean is_active
     }
-    TABLE_A ||--o{ TABLE_B : "relationship"
 ```
+- Format: `TYPE column_name` or `TYPE column_name PK "description"` or `TYPE column_name FK "description"`
+- The quoted description is optional
+- Use standard types: `string`, `int`, `bigint`, `boolean`, `datetime`, `float`, `text`, `uuid`, `json`
+- Avoid exotic types Mermaid may not recognize
+
+**Relationship labels:** ALWAYS in double quotes:
+- ✅ `TABLE_A ||--o{ TABLE_B : "has many"`
+- ❌ `TABLE_A ||--o{ TABLE_B : has many` — unquoted labels with spaces cause errors
+
+**Relationship cardinality syntax:**
+- `||--||` one-to-one (exactly one on both sides)
+- `||--o{` one-to-many (zero or more)
+- `||--|{` one-to-many (one or more)
+- `}o--o{` many-to-many
+- `|o--o|` zero or one on both sides
+
+**Include all data stores** — not just relational databases. NoSQL collections, analytics tables, key-value stores all get entities in `erDiagram`.
 
 ---
 
 ## Cross-Document Rules
 
 **Consistency:** The status of an item must be consistent across all docs.
-- If listed in `dead-code.md` → must NOT be `✅ Active` in `c4-level-3.md`
+- If listed in `dead-code.md` → must NOT be `✅ Active` in `c4-level-3.md` component tables
+- If listed in `dead-code.md` → must have `UNUSED` marker in `c4-level-4.md` classDiagram methods
+- If a discontinued container/system → must have `[DISCONTINUED]` label AND all arrows `-.->` in `c4-level-2.md`
 - If listed as dead in `request-map.md` → must not appear as active in C4 diagrams
-- `dead-code.md` is the source of truth for what is unused
+- `dead-code.md` is the source of truth for what is unused — check it before setting any status
 
 **Cross-references:** Add them when relevant:
 - Security issues that overlap with bugs → reference `bugs.md`
@@ -474,11 +613,11 @@ After generating all files, run these checks before delivering:
 
 ### 1. Anonymization sweep
 Scan every generated file for full values of:
-- API keys (`AIzaSy*`, `sk-*`, `hf_*`, etc.)
+- API keys (`AIzaSy*`, `sk-*`, `hf_*`, `ya29.*`, etc.)
 - Private keys (`-----BEGIN PRIVATE KEY-----`)
 - Passwords and bearer tokens
-- Service account / IAM emails (full email must be truncated)
-- Client IDs (full OAuth client IDs must be truncated)
+- Service account / IAM emails — full email must be truncated to `name@...domain.com`
+- Client IDs — full OAuth client IDs must be truncated
 
 ### 2. Cross-consistency check
 For every item in `dead-code.md`:
@@ -487,21 +626,23 @@ For every item in `dead-code.md`:
 - If a container/system → in `c4-level-2.md` must have `[DISCONTINUED]` label and all arrows must be `-.->` (dashed)
 
 ### 3. Code snippet check
-Every `### N.` issue in `security-issues.md` and `bugs.md` must have a code block. No exceptions.
+Every `### N.` issue in `security-issues.md` and `bugs.md` must have a code block between `**File:**` and `**Risk:**`/`**Impact:**`. No exceptions.
+
+When the problem is the ABSENCE of something (no auth check, no rate limiting, no input validation): show the code where the mitigation SHOULD exist but doesn't — the middleware setup, the route handler, the config file where the protection is missing. If the entire mechanism is absent, show the closest entry point (route registration, server setup) to illustrate the gap.
 
 ### 4. Cross-reference check
 - Every security issue with bug overlap → references `bugs.md`
 - Every committed credential/env file → references `environment-variables.md`
 
 ### 5. Section completeness
-- `request-map.md`: all 8 section types were evaluated (include header + "None" if a section has no items, except omit empty ones that clearly don't apply)
-- `environment-variables.md`: all 5 Part 1 types were evaluated; no variable was misclassified
+- `request-map.md`: all 8 section types were evaluated. If a category has no items, include the header with a "None" note — except clearly inapplicable sections (e.g., "Embedded content" can be omitted if there are no external scripts)
+- `environment-variables.md`: all 5 Part 1 types were evaluated. No variable was misclassified. Part 2 section numbers continue from Part 1. The `#` column in Part 2 is a single sequential counter across all categories.
 
 ---
 
 ## Development-Time Usage Patterns
 
-This skill is designed to work during active development, not just as a post-hoc audit. Common patterns:
+This skill works during active development, not just as a post-hoc audit. Common patterns:
 
 **Design phase:** Run `/document c4` before writing code — document the intended architecture. Diagrams become a contract for implementation.
 
