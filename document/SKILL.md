@@ -163,7 +163,7 @@ Always generate in this order to satisfy cross-document dependencies:
 
 **External Systems table:** `System` | `Description`
 
-**Main Flow:** Numbered list (5–10 steps) describing the main happy path end-to-end. High-level — no file names or implementation details. Must be consistent with the diagram.
+**Main Flow:** Numbered list (5–10 steps) describing the main happy path end-to-end. High-level — no file names or implementation details. Must be consistent with the diagram and the entry point — if users first go through an external gateway or auth system before reaching the main system, step 1 must reflect that, not skip straight to "user authenticates at the frontend."
 
 ---
 
@@ -184,6 +184,8 @@ Arrows show protocols (REST, gRPC, WebSocket, Pub/Sub, AMQP, etc.)
 
 **Container table:** Name | Technology | Deployment target | Description
 
+For serverless functions / background workers, include richer columns when relevant: `Called by` | `Calls made` | `Auth received` | `Status`
+
 ---
 
 ### `c4/c4-level-3.md` — Component Diagram
@@ -197,8 +199,11 @@ Arrows show protocols (REST, gRPC, WebSocket, Pub/Sub, AMQP, etc.)
 - Middleware
 - Internal dependencies (arrows between components)
 - For frontend: pages, components, hooks, services, state management
+- For serverless functions: one table summarizing `Trigger` | `Inputs` | `Key logic` instead of a component diagram
 
-**Component table** below each diagram: `Component` | `File path` | `Description` | `Status`
+**Component table** below each diagram: `Component` | `File path` | `Description` | `Status` | `Notes`
+
+Dead/unused items must include a reason in the `Notes` column (e.g., "not imported anywhere", "route removed", "replaced by X").
 
 **Status decision tree:**
 1. Entire component listed in `dead-code.md` as unused → `❌ Unused`
@@ -305,6 +310,8 @@ The `#` column is sequential across all sections.
 
 **Impact:** Description of the impact.
 
+*(Optional)* **Fix:** A fix suggestion is not required for bugs but may be included when the solution is clear.
+
 ---
 ```
 
@@ -342,6 +349,8 @@ Classify each variable by asking in this order:
 5. **Dockerfile variables** — `ENV`/`ARG` set during Docker build
 
 A variable may appear in multiple sections (e.g., a build substitution that maps to a runtime variable). Omit any type with zero variables. Do not misclassify a variable into the wrong type — match the definition exactly.
+
+**Check all config sources before declaring a variable unconfigured.** Sources include: `.env` files, `.env.*` variants, CI/CD pipeline configs (GitHub Actions, Cloud Build, `cloudbuild.yaml`, etc.), and `Dockerfile` `ENV`/`ARG` directives. A variable found in any of these counts as configured.
 
 **Part 2 — Hardcoded values (by category):**
 
@@ -618,6 +627,7 @@ Scan every generated file for full values of:
 - Passwords and bearer tokens
 - Service account / IAM emails — full email must be truncated to `name@...domain.com`
 - Client IDs — full OAuth client IDs must be truncated
+- Hex key IDs — hex strings longer than 16 characters (e.g., `031c...db27`) must be truncated
 
 ### 2. Cross-consistency check
 For every item in `dead-code.md`:
